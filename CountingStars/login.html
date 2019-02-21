@@ -1,0 +1,38 @@
+﻿<link href="layui/css/layui.css" rel="stylesheet" />
+<script src="layui/layui.all.js"></script>
+<script src="angular.js"></script>
+<script src="common.js"></script>
+<script>
+    var app = angular.module('app', []);
+    app.controller('login', function ($scope, $sce) {
+        $scope.login = function () {
+            if ($scope.loginId) {
+                layer.msg("登录成功", {
+                    time: 1200 
+                }, function () {
+                    localStorage.setItem(loginCore.LoginNameKey, $scope.loginId);
+                    location.href = loginCore.IndexPage;
+                });
+             
+            }
+        }
+    });
+</script>
+<html>
+<head>
+    <title>登录</title>
+</head>
+<body ng-app="app">
+    <div ng-controller="login">
+        <div class="layui-form layui-form-pane">
+            <div class="layui-form-item layui-form-text">
+                <label class="layui-form-label">登录以继续</label>
+                <input class="layui-input" ng-model='loginId' placeholder="输入登录ID以同步数据(若不存在则自动生成)" />
+            </div>
+            <div class="layui-form-item">
+                <button class="layui-btn layui-btn-fluid" ng-click="login()">确认</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

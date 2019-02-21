@@ -1,0 +1,52 @@
+﻿<link href="layui/css/layui.css" rel="stylesheet" />
+<script src="layui/layui.all.js"></script>
+<script src="angular.js"></script>
+<script src="av-min.js"></script>
+<script>
+    var { Query, User } = AV;
+    AV.init('s44XmGNmCEiM7brKGRrazhkt-gzGzoHsz', 'tKNAMwNeMwEcHQlP0u1YyIrm');
+    // 实时消息服务
+    var Memorandum = AV.Object.extend('memorandum');
+    var memorandum = new Memorandum();
+    var app = angular.module('app', []);
+    app.controller('memorandum', function ($scope, $sce) {
+        $scope.get = function (r) {
+            var query = new AV.Query('memorandum');
+            query.descending('createdAt');
+            query.limit(1);
+            query.find().then(function (result) {
+                $scope.content = result[0].attributes.content;
+                $scope.$apply();
+            }).catch(function (error) {
+                alert(JSON.stringify(error));
+            });
+        }
+        $scope.get();
+        $scope.send = function () {
+            memorandum.save({
+                content: $scope.content
+            }).then(function (object) {
+                layer.msg("保存成功");
+            });
+        }
+    });
+</script>
+<html>
+<head>
+</head>
+<body ng-app="app">
+    <div ng-controller="memorandum">
+        <div class="layui-form layui-form-pane">
+            <div class="layui-form-item layui-form-text">
+                <label class="layui-form-label">这是我们的小本本</label>
+                <div class="layui-input-block">
+                    <textarea style="height: 300px" placeholder="小本本内容" ng-model="content" class="layui-textarea"></textarea>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <button class="layui-btn" ng-click="send()" lay-filter="demo2">保存</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

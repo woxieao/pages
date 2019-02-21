@@ -1,0 +1,24 @@
+﻿<script src="av-min.js"></script>
+<script src="lcEntity.js"></script>
+<h1>Test1</h1>
+<script>
+    var test = new LcEntity("test");
+    //  test.Add({ hahaha: Math.random()}).then((r) => { console.log(r) });
+    //test.GetList().then((list) => { console.log(list) });
+    //test.GetList().then((list) => { console.log(list) }).then(() => { alert(1) });
+    //return;
+    test.FirstOrDefault().then((item) => {
+        //  console.log(item);
+        item.ssss = 3333;
+        test.Update(item).then((item) => {
+            test.GetById(item.objectId).then((item) => {
+                test.RemoveById(item.objectId).then((item1) => {
+                 //   console.log(item1);
+                    test.GetById(item.objectId).then((item) => { console.log(item); })
+                })
+            });
+        });
+    });
+
+
+</script>

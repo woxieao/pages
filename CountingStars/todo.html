@@ -1,0 +1,200 @@
+﻿<link href="layui/css/layui.css" rel="stylesheet" />
+<script src="layui/layui.all.js"></script>
+<script src="angular.js"></script>
+<script src="av-min.js"></script>
+<script src="common.js"></script>
+<script src="lcEntity.js"></script>
+<html ng-app="app">
+<head>
+    <title>备忘录</title>
+</head>
+<body ng-controller="todo">
+    <div>
+
+        <div class="layui-form layui-form-pane">
+
+            <div class="layui-form-item ">
+
+                <table class="layui-table" style="table-layout:auto">
+                    <thead>
+                        <tr>
+                            <td colspan="4">
+                                <div class="layui-form-item">
+                                    <div class="layui-input-inline">
+                                        <input type="text" ng-change="get()" ng-model="keyword"
+                                               lay-verify="required" placeholder="标题/详情 关键字" class="layui-input">
+                                    </div>
+                                    <div class="layui-input-inline">
+                                        <select name="status" lay-filter="changeStatus">
+                                            <option value="">全部状态</option>
+                                            <option value="0" selected="">未完成</option>
+                                            <option value="1">已完成</option>
+                                        </select>
+                                    </div>
+                                    <div class="layui-input-inline" ng-show="isShareBox">
+                                        <input ng-model="bookShare2Id" ng-change="changeShare2Id()"
+                                               class="layui-input" placeholder="小本本共享人登录ID" />
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <button class="layui-btn layui-btn-normal layui-btn-radius"
+                                        ng-click="showModal({ })">
+                                    新增
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>标题</th>
+                            <th>详情</th>
+                            <th>编辑时间</th>
+                            <th>是否完成</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="item in list">
+                            <td><strong>{{item.title}}</strong></td>
+                            <td>{{item.content}}</td>
+                            <td>{{item.updateTime| date:'yyyy-MM-dd HH:mm'}}</td>
+                            <td>
+                                <label>
+                                    <input ng-click="switch(item)" style="float: left" type="checkbox" id="isDone{{$index}}_{{item.isDone}}" lay-skin="switch" lay-text="是|否">
+                                </label>
+                            </td>
+                            <td>
+                                <button class="layui-btn layui-btn-xs layui-btn-radius" ng-click="modify(item)">编辑</button><span></span>
+
+                                <button class="layui-btn-danger layui-btn layui-btn-xs layui-btn-radius" ng-click="delete(item)">删除</button>
+                            </td>
+                        </tr>
+                        <tr ng-show="list.length===0"><td colspan="5" style="text-align: center">暂无数据</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="modal" style="display: none; padding: 20px; line-height: 22px; background-color: #393D49; color: #fff; font-weight: 400;">
+                <input placeholder="标题" class="layui-input" ng-model="model.title" /><br>
+                <textarea placeholder="详情" style="height: 132px" class="layui-textarea"
+                          ng-model="model.content"></textarea>
+                <br />
+                <button class="layui-btn layui-btn-fluid layui-btn-warm" ng-click="saveData(model)">保存</button>
+            </div>
+        </div>
+
+    </div>
+    <script>
+        var app = angular.module('app', []);
+        app.controller('todo', function ($scope, $sce) {
+            $scope.loginId = loginCore.GetLoginId();
+            var bookShare2IdKeyName = "BookShare2Id";
+            $scope.bookShare2Id = localStorage.getItem(bookShare2IdKeyName);
+            var type = getQueryStringByName("type") * 1;
+            var todoDal = new LcEntity("todo");
+            $scope.isShareBox = type === 2;
+            $scope.args = {
+                where: { type: type, isDone: false }
+            };
+            if ($scope.isShareBox) {
+                $scope.args.orWhere = {
+                    loginId: [$scope.loginId, $scope.bookShare2Id]
+                }
+            } else {
+                $scope.args.where.loginId = $scope.loginId;
+            }
+            $scope.changeShare2Id = function () {
+                localStorage.setItem(bookShare2IdKeyName, $scope.bookShare2Id);
+                $scope.args.orWhere = { loginId: [$scope.loginId, $scope.bookShare2Id] };
+                $scope.get();
+            }
+            $scope.get = function (r) {
+                delete $scope.args.like;
+                if ($scope.keyword) {
+                    $scope.args.like = { "title|content": $scope.keyword };
+                }
+                todoDal.GetList($scope.args).then(function (result) {
+                    $scope.list = result;
+                    $scope.$apply();
+                    var form = layui.form;
+                    var $ = layui.$;
+                    var checkboxList = $.find("[id^=isDone]");
+                    for (var i = 0; i < checkboxList.length; i++) {
+                        var status = (checkboxList[i].id.split('_')[1]).toLowerCase() === "true";
+                        $("#" + checkboxList[i].id).prop('checked', status);
+
+                    }
+                    form.render();
+                    $scope.$apply();
+                }).catch(function (error) {
+                    console.log(error);
+                });
+            }
+            $scope.get();
+
+            $scope.saveData = function (item) {
+                item.loginId = $scope.loginId;
+                item.type = type;
+                item.isDone = item.isDone || false;
+                if (item.title) {
+                    todoDal.AddOrUpdate(item).then(function () {
+                        $scope.get();
+                        layer.msg("保存成功", { time: 1000 }, function () { layer.closeAll(); });
+                    });
+                } else {
+                    layer.msg("请输入标题");
+                }
+            }
+            $scope.model = {};
+            $scope.delete = function (item) {
+                layer.confirm("确定删除?", { btn: ['心意已决', '算了!'], title: "Warning" }, function () {
+                    todoDal.RemoveById(item.objectId).then(function () {
+                        $scope.get();
+                        layer.msg("删除成功", { time: 1000 });
+                    });
+                });
+            }
+            $scope.showModal = function (model) {
+                $scope.model = model;
+                layui.use(['layer'], function () {
+                    var layer = layui.layer, $ = layui.$;
+                    layer.open({
+                        type: 1,//类型
+                        area: ['400px', '335px'],//定义宽和高
+                        title: '备忘录',//题目
+                        shadeClose: false,//点击遮罩层关闭
+                        content: $('#modal')//打开的内容
+                    });
+                });
+            }
+            $scope.switch = function (item) {
+                item.isDone = !item.isDone;
+                todoDal.AddOrUpdate(item).then(function () {
+                    $scope.get();
+                    layer.msg(item.isDone ? "标记为完成" : "标记为待办", { time: 1000 });
+                });
+            }
+            $scope.modify = function (item) {
+                $scope.showModal(item);
+            }
+            $scope.Test = function () {
+                console.log(1);
+            }
+            layui.use('form', function () {
+                var form = layui.form;
+                form.render();
+                form.on('select(changeStatus)', function (data) {
+                    if (data.value) {
+                        $scope.args.where.isDone = data.value === '1';
+                    } else {
+                        delete $scope.args.where.isDone;
+                        $scope.args.where = $scope.args.where;
+                    }
+                    $scope.get();
+                });
+            });
+
+        });
+
+    </script>
+</body>
+</html>
+
