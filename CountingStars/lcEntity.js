@@ -46,7 +46,7 @@ var LcEntity = function (entityName) {
         }
         var hasInitOrWhere = false;
         var tempOrWhereQuery = new AV.Query(entityName);
-        console.log(tempOrWhereQuery);
+        
         for (var key in args.orWhere) {
             var val = args.orWhere[key];
             for (var i in val) {
@@ -57,7 +57,6 @@ var LcEntity = function (entityName) {
             }
         }
 
-        console.log(tempOrWhereQuery);
         query = AV.Query.and(query, tempOrWhereQuery);
 
         query.descending(args.orderby);
