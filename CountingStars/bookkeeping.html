@@ -40,7 +40,7 @@
                 
         </blockquote>
         <div class="layui-row" >
-            <div class="layui-col-xs1" ng-repeat="record in Data.RecordList">
+            <div class="layui-col-xs2" ng-repeat="record in Data.RecordList">
                 <button ng-click="saveData(Data,record)" class="layui-btn layui-btn-{{record.IsSelect?'normal':'primary'}} layui-btn-fluid">{{record.Value}}</button>
             </div>
         </div>
