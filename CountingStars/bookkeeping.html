@@ -1,0 +1,153 @@
+﻿<link href="layui/css/layui.css" rel="stylesheet" />
+<script src="layui/layui.all.js"></script>
+<script src="angular.js"></script>
+<script src="av-min.js"></script>
+<script src="common.js"></script>
+<script src="lcEntity.js"></script>
+
+<html ng-app="app">
+<head>
+    <title>365记账</title>
+</head>
+<body ng-controller="bookkeeping">
+    
+       
+      
+<div class="layui-form layui-form-pane">
+    <div class="layui-form-item " >
+        <blockquote class="layui-elem-quote">
+            <div style="bottom: 7px" class="layui-input-inline">
+                <select name="year" lay-filter="changeYear">
+                    <option value="2019">2019</option>
+                    <option value="2020">2020</option>
+                    <option value="2021">2021</option>
+                    <option value="2022">2022</option>
+                    <option value="2023">2023</option>
+                    <option value="2024">2024</option>
+                    <option value="2025">2025</option>
+                    <option value="2026">2026</option>
+                    <option value="2027">2027</option>
+                    <option value="2028">2028</option>
+                    <option value="2029">2029</option>
+                </select>
+            </div>
+            <h3 >
+                年度
+                共积攒<strong>{{Data.TotalMoney}}</strong>元
+                共记录<strong>{{Data.TotalRecord}}</strong>次
+                开始时间<strong>{{Data.updateTime| date:'yyyy-MM-dd HH:mm'}}{{Data.updateTime?"":"尚无记录"}}</strong>
+            </h3>
+                
+        </blockquote>
+        <div class="layui-row" >
+            <div class="layui-col-xs1" ng-repeat="record in Data.RecordList">
+                <button ng-click="saveData(Data,record)" class="layui-btn layui-btn-{{record.IsSelect?'normal':'primary'}} layui-btn-fluid">{{record.Value}}</button>
+            </div>
+        </div>
+                
+    </div>
+    <div id="modal" style="display: none; padding: 20px; line-height: 22px; background-color: #393D49; color: #fff; font-weight: 400;">
+        <input placeholder="标题" class="layui-input" ng-model="model.title" /><br>
+        <textarea placeholder="详情" style="height: 132px" class="layui-textarea"
+                          ng-model="model.content"></textarea>
+        <br />
+        <button class="layui-btn layui-btn-fluid layui-btn-warm" ng-click="saveData(model)">保存</button>
+    </div>
+</div>
+    <script>
+        var app = angular.module('app', []);
+        app.controller('bookkeeping', function ($scope, $sce) {
+            $scope.loginId = loginCore.GetLoginId();
+            var time = new Date();
+            var currentYear = time.getFullYear();
+            $scope.Year = currentYear;
+            $scope.Data = { Year: currentYear, TotalMoney: 0, TotalRecord: 0, RecordList: [] };
+            function initData(year) {
+                var arr = [];
+                for (var i = 1; i <= 365; i++) {
+                    arr.push({ IsSelect: false, Value: i });
+                }
+                $scope.Data = { Year: year, TotalMoney: 0, TotalRecord: 0, RecordList: arr };
+             }
+          
+            var todoDal = new LcEntity("bookkeeping");
+            $scope.get = function (year) {
+                todoDal.GetList({ where: { Year: year, LoginId: $scope.loginId } }).then(function (result) {
+                    if (result.length) {
+                        $scope.Data = result[0];
+                    } else {
+                        initData(currentYear);
+                    }
+                    $scope.Data.TotalMoney = 0;
+                    $scope.Data.TotalRecord= 0;
+                    for (var i in $scope.Data.RecordList) {
+                        var record = $scope.Data.RecordList[i];
+                        if (record.IsSelect) {
+                            $scope.Data.TotalMoney += record.Value;
+                            ++$scope.Data.TotalRecord ;
+                        }
+                    }
+                    $scope.$apply();
+                    var form = layui.form;
+                    form.render();
+                    $scope.$apply();
+                }).catch(function (error) {
+                    console.log(error);
+                    });
+
+            }
+            $scope.get(currentYear);
+            $scope.saveData = function (item, record) {
+                function save(index)
+                {
+                    layer.close(index);
+                    item.LoginId = $scope.loginId;
+                    item.Year = $scope.Year;
+                    record.IsSelect = !record.IsSelect;
+                    for (var i in item.RecordList) {
+                        delete item.RecordList[i]["$$hashKey"];
+                    } 
+                    todoDal.AddOrUpdate(item).then(function () {
+                        $scope.get($scope.Year );
+                    });
+                }
+                if (record.IsSelect) {
+                    layer.confirm("确定取消记录?", { offset: "t" }, save);
+                }
+                else {
+                    layer.msg("+" + record.Value, { offset: "t" });
+                    save();
+                }
+            }
+            $scope.model = {};
+            $scope.showModal = function (model) {
+                $scope.model = model;
+                layui.use(['layer'], function () {
+                    var layer = layui.layer, $ = layui.$;
+                    layer.open({
+                        type: 1,//类型
+                        area: ['400px', '335px'],//定义宽和高
+                        title: '备忘录',//题目
+                        shadeClose: false,//点击遮罩层关闭
+                        content: $('#modal')//打开的内容
+                    });
+                });
+            }
+          
+            layui.use('form', function () {
+                var form = layui.form;
+              //  form.render();
+                form.on('select(changeYear)', function (data) {
+                    var year = data.value * 1;
+                    $scope.Year = year;
+                    $scope.get(year );
+                });
+            });
+     
+
+        });
+
+    </script>
+</body>
+</html>
+
